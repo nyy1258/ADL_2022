@@ -1,7 +1,7 @@
 python preprocess.py --do_train --do_predict
 
 python run_mc.py \
---model_name_or_path "hfl/chinese-xlnet-base" \
+--model_name_or_path "hfl/chinese-roberta-wwm-ext-large" \
 --output_dir ./multi_choice_model/ \
 --overwrite_output_dir \
 --per_gpu_train_batch_size 1 \
@@ -19,7 +19,7 @@ python run_mc.py \
 
 
 python run_qa.py \
---model_name_or_path "hfl/chinese-xlnet-base" \
+--model_name_or_path "hfl/chinese-roberta-wwm-ext-large" \
 --output_dir ./question_answer_model/ \
 --overwrite_output_dir \
 --per_gpu_train_batch_size 1 \
