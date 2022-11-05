@@ -324,14 +324,16 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
-    model = AutoModelForMultipleChoice.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
-    )
+    
+    model = AutoModelForMultipleChoice.from_config(config)
+    #model = AutoModelForMultipleChoice.from_pretrained(
+        #model_args.model_name_or_path,
+        #from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        #config=config,
+        #cache_dir=model_args.cache_dir,
+        #revision=model_args.model_revision,
+        #use_auth_token=True if model_args.use_auth_token else None,
+    #)
 
     # When using your own dataset or a different dataset from swag, you will probably need to change this.
     ending_names = [f"ending{i}" for i in range(4)]
