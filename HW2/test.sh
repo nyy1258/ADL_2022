@@ -1,7 +1,7 @@
 python preprocess.py --do_train --do_predict
 
 python run_mc.py \
---model_name_or_path "hfl/chinese-roberta-wwm-ext-large" \
+--model_name_or_path 'hfl/chinese-roberta-wwm-ext' \
 --output_dir ./multi_choice_model/ \
 --overwrite_output_dir \
 --per_gpu_train_batch_size 1 \
@@ -27,7 +27,7 @@ python run_qa.py \
 --gradient_accumulation_steps 2 \
 --max_seq_length 512 \
 --learning_rate 3e-5 \
---num_train_epochs 2 \
+--num_train_epochs 1 \
 --do_train \
 --do_eval \
 --train_file './cache/pre_train.json' \
