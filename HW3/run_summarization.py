@@ -51,7 +51,7 @@ from transformers.utils import check_min_version, is_offline_mode, send_example_
 from transformers.utils.versions import require_version
 
 import json
-from trainer_seq2seq import Seq2SeqTrainer
+from extra_seq2seq import extra_Seq2SeqTrainer
 from tw_rouge import get_rouge
 
 
@@ -685,7 +685,7 @@ def main():
         return result
 
     # Initialize our Trainer
-    trainer = Seq2SeqTrainer(
+    trainer = extra_Seq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset if training_args.do_train else None,
