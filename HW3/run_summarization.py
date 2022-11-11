@@ -42,7 +42,7 @@ from transformers import (
     MBart50TokenizerFast,
     MBartTokenizer,
     MBartTokenizerFast,
-    Seq2SeqTrainer,
+    #Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     set_seed,
 )
@@ -51,6 +51,8 @@ from transformers.utils import check_min_version, is_offline_mode, send_example_
 from transformers.utils.versions import require_version
 
 import json
+from trainer_seq2seq import Seq2SeqTrainer
+from tw_rouge import get_rouge
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -154,6 +156,14 @@ class DataTrainingArguments:
             )
         },
     )
+    output_file:Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "An optional input output data file to store prediction result."
+            )
+        },
+    )
     test_file: Optional[str] = field(
         default=None,
         metadata={
@@ -241,6 +251,33 @@ class DataTrainingArguments:
                 "which is used during ``evaluate`` and ``predict``."
             )
         },
+    )
+    top_k: Optional[int] = field(
+        default=None,
+		metadata={
+            "help": (
+                "Number of beams to use for evaluation. This argument will be passed to ``model.generate``, "
+                "which is used during ``evaluate`` and ``predict``."
+            )
+        }
+    )
+    top_p: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Number of beams to use for evaluation. This argument will be passed to ``model.generate``, "
+                "which is used during ``evaluate`` and ``predict``."
+            )
+        }
+    )
+    temperature: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Number of beams to use for evaluation. This argument will be passed to ``model.generate``, "
+                "which is used during ``evaluate`` and ``predict``."
+            )
+        }
     )
     ignore_pad_token_for_loss: bool = field(
         default=True,
@@ -385,18 +422,15 @@ def main():
         if data_args.train_file is not None:
             data_files["train"] = data_args.train_file
             extension = data_args.train_file.split(".")[-1]
-            if extension == 'jsonl':
-                extension = 'json'
         if data_args.validation_file is not None:
             data_files["validation"] = data_args.validation_file
             extension = data_args.validation_file.split(".")[-1]
-            if extension == 'jsonl':
-                extension = 'json'
         if data_args.test_file is not None:
             data_files["test"] = data_args.test_file
             extension = data_args.test_file.split(".")[-1]
-            if extension == 'jsonl':
-                extension = 'json'
+			
+        if extension == 'jsonl':
+            extension = 'json'
         raw_datasets = load_dataset(
             extension,
             data_files=data_files,
@@ -635,17 +669,18 @@ def main():
         # Some simple post-processing
         decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
-        result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
-        result = {k: round(v * 100, 4) for k, v in result.items()}
+        result = get_rouge(preds=decoded_preds, refs=decoded_labels)
+        result = {key: value['f'] * 100 for key, value in result.items()}
+
         prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
         result["gen_len"] = np.mean(prediction_lens)
+        #result = {k: round(v, 4) for k, v in result.items()} ***
+        result = {k: round(v * 100, 4) for k, v in result.items()}
 
-        # Extract a few results from ROUGE
-        #result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
-
+        #result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
+        #result = {k: round(v * 100, 4) for k, v in result.items()}
         #prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
         #result["gen_len"] = np.mean(prediction_lens)
-        #result = {k: round(v, 4) for k, v in result.items()}
 		
         return result
 
@@ -701,7 +736,13 @@ def main():
         logger.info("*** Predict ***")
 
         predict_results = trainer.predict(
-            predict_dataset, metric_key_prefix="predict", max_length=max_length, num_beams=num_beams
+            predict_dataset, 
+            metric_key_prefix="predict", 
+            max_length=max_length, 
+            num_beams=num_beams,
+            top_k=data_args.top_k, 
+            top_p=data_args.top_p, 
+            temperature=data_args.temperature
         )
         metrics = predict_results.metrics
         max_predict_samples = (
@@ -722,14 +763,14 @@ def main():
                 #with open(output_prediction_file, "w") as writer:
                     #writer.write("\n".join(predictions))
 
-                with open(model_args.out_file, "w", encoding='utf-8') as writer:
+                with open(model_args.output_file, "w", encoding='utf-8') as writer:
                     for i in range(len(predictions)):
                         D = {}
                         D["title"] = predictions[i]
                         D["id"] = raw_datasets["test"][i]["id"]
 
                         json.dump(D, writer, ensure_ascii=False)
-                        writer.write("\n")
+                        writer.write('\n')
 
     kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "summarization"}
     if data_args.dataset_name is not None:
