@@ -26,7 +26,7 @@ from transformers import Seq2SeqTrainer
 import logging
 
 
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class extra_Seq2SeqTrainer(Seq2SeqTrainer):
