@@ -24,6 +24,7 @@ from transformers import Seq2SeqTrainer
 #from .trainer_utils import PredictionOutput
 #from .utils import logging
 import logging
+from transformers.trainer_utils import PredictionOutput
 
 
 logger = logging.getLogger(__name__)
