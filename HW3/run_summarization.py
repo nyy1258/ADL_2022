@@ -252,6 +252,15 @@ class DataTrainingArguments:
             )
         },
     )
+    do_sample: Optional[bool] = field(
+        default = False,
+        metadata={
+            "help": (
+                "Number of beams to use for evaluation. This argument will be passed to ``model.generate``, "
+                "which is used during ``evaluate`` and ``predict``."
+            )
+        },
+    )
     top_k: Optional[int] = field(
         default=None,
 		metadata={
@@ -657,6 +666,7 @@ def main():
         return preds, labels
 
     def compute_metrics(eval_preds):
+        logger.info("****** compute_metrics ******")
         preds, labels = eval_preds
         if isinstance(preds, tuple):
             preds = preds[0]
@@ -669,18 +679,12 @@ def main():
         # Some simple post-processing
         decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
-        result = get_rouge(preds=decoded_preds, refs=decoded_labels)
-        result = {key: value['f'] * 100 for key, value in result.items()}
+        rouge_result = get_rouge(preds=decoded_preds, refs=decoded_labels)
+
+        result = {key: round(value['f'] * 100, 4) for key, value in rouge_result.items()}
 
         prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
         result["gen_len"] = np.mean(prediction_lens)
-        #result = {k: round(v, 4) for k, v in result.items()} ***
-        result = {k: round(v * 100, 4) for k, v in result.items()}
-
-        #result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
-        #result = {k: round(v * 100, 4) for k, v in result.items()}
-        #prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
-        #result["gen_len"] = np.mean(prediction_lens)
 		
         return result
 
@@ -740,6 +744,7 @@ def main():
             metric_key_prefix="predict", 
             max_length=max_length, 
             num_beams=num_beams,
+            do_sample =data_args.do_sample,
             top_k=data_args.top_k, 
             top_p=data_args.top_p, 
             temperature=data_args.temperature
@@ -759,11 +764,8 @@ def main():
                     predict_results.predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
                 )
                 predictions = [pred.strip() for pred in predictions]
-                #output_prediction_file = os.path.join(training_args.output_dir, "generated_predictions.txt")
-                #with open(output_prediction_file, "w") as writer:
-                    #writer.write("\n".join(predictions))
 
-                with open(model_args.output_file, "w", encoding='utf-8') as writer:
+                with open(data_args.output_file, "w", encoding='utf-8') as writer:
                     for i in range(len(predictions)):
                         D = {}
                         D["title"] = predictions[i]
